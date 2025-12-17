@@ -86,7 +86,32 @@ def generate_code(client, prompt, temperature=0.2, max_tokens=512, num_samples=1
     返回:
         List[str]: 生成的代码列表
     """
-    # TODO: 实现此函数
+    try:
+        # 构建系统提示
+        system_prompt = "你是一个专业的Python程序员，请根据用户提供的函数签名和文档字符串，完成函数的实现。只需要返回函数的实现代码，不要添加其他解释或注释。"
+        
+        # 调用OpenAI API生成代码
+        response = client.chat.completions.create(
+            model="Qwen/Qwen3-8B",  # SiliconFlow 支持的模型
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            n=num_samples
+        )
+        
+        # 提取生成的代码
+        generated_codes = []
+        for choice in response.choices:
+            generated_codes.append(choice.message.content.strip())
+        
+        return generated_codes
+    
+    except Exception as e:
+        print(f"❌ 代码生成失败: {e}")
+        return [None] * num_samples
 
 
 def execute_code_with_test(code, test_code, entry_point):
@@ -152,7 +177,19 @@ def calculate_pass_at_k(results, k=1):
     返回:
         float: pass@k 分数
     """
-    # TODO: 实现此函数
+    if not results:
+        return 0.0
+    
+    correct = 0
+    total = 0
+    
+    for result in results:
+        total += 1
+        # 如果在k个样本中至少有一个通过测试，则认为该问题通过
+        if result["passed"]:
+            correct += 1
+    
+    return correct / total if total > 0 else 0.0
 
 
 def main():
@@ -226,7 +263,9 @@ def main():
             "samples_tested": len([c for c in codes if c is not None])
         })  
         
-        # TODO: 计算 pass@k 并显示
+        # 计算并显示 pass@k
+        pass_at_1 = calculate_pass_at_k(results, k=1)
+        print(f"\n📊 当前 pass@1: {pass_at_1:.4f}")
     
     print("\n✅ 测试完成!")
 
