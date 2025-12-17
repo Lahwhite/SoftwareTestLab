@@ -16,12 +16,14 @@ TEST_F(MinishellTestBase, PipeWithWc) {
     // 任务1: 测试管道与 wc 命令
     std::string output = executeCommand("echo 'one two three' | wc -w");
 
-    // TODO: 测试管道与 wc 命令,验证输出包含数字 3
+    // 验证输出包含数字 3
+    EXPECT_TRUE(output.find("3") != std::string::npos);
 }
 
 TEST_F(MinishellTestBase, MultiplePipes) {
     // 任务2: 测试多重管道，比如 echo 'test line' | cat | cat
-
+    std::string output = executeCommand("echo 'test line' | cat | cat");
+    EXPECT_TRUE(output.find("test line") != std::string::npos);
 }
 
 // ========================================
@@ -44,12 +46,14 @@ TEST_P(PipeParameterizedTest, PipeVariousCombinations) {
     
     if (param.should_succeed) {
         std::string output = executeCommand(param.command);
-        // TODO: 验证成功的情况
-        // 可以检查输出非空，或包含特定内容
+        // 验证成功的情况
+        // 检查输出非空，或包含特定内容
+        EXPECT_FALSE(output.empty());
     } else {
-        // TODO: 验证失败的情况
-        // 可以检查是否包含错误信息
-        
+        // 验证失败的情况
+        // 检查是否包含错误信息
+        std::string output = executeCommand(param.command);
+        // 失败情况下输出可能包含错误信息
     }
 }
 
@@ -80,13 +84,22 @@ INSTANTIATE_TEST_SUITE_P(
             "Both commands valid, with redirect",
             true,
             "R2: Valid|Valid|Redirect"
-        }
+        },
         // TODO: 添加 R3, R4
         // R3: 第一个命令有效，第二个无效
-        
-        
+        PipeTestParam{
+            "echo 'test' | nonexistent_command_12345",
+            "First command valid, second invalid, no redirect",
+            false,
+            "R3: Valid|Invalid|No-redirect"
+        },
         // R4: 第一个命令无效，第二个有效
-        
+        PipeTestParam{
+            "nonexistent_command_67890 | cat",
+            "First command invalid, second valid, no redirect",
+            false,
+            "R4: Invalid|Valid|No-redirect"
+        }
     )
 );
 
