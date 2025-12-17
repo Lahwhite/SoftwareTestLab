@@ -42,6 +42,11 @@ TEST_P(EchoParameterizedTest, EchoVariousInputs) {
     EXPECT_TRUE(output.find(param.expected_output) != std::string::npos);
 }
 
+std::string getHome() {
+    const char* home = std::getenv("HOME");
+    return home ? std::string(home) : "/tmp";
+}
+
 // 任务3: 完成参数实例化
 INSTANTIATE_TEST_SUITE_P(
     EchoTests,
@@ -51,7 +56,7 @@ INSTANTIATE_TEST_SUITE_P(
         EchoTestParam{"\"Hello World\"", "Hello World", "Double quoted string"},
         EchoTestParam{"'Single Quotes'", "Single Quotes", "Single quoted string"},
         // 继续添加更多测试用例...
-        EchoTestParam{"$HOME", "HOME", "Environment variable"},
+        EchoTestParam{"$HOME", getHome(), "Environment variable"},
         EchoTestParam{"Hello World", "Hello World", "Unquoted multiple words"}
     )
 );
