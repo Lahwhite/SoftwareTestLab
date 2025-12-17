@@ -48,12 +48,21 @@ class ShoppingSystemTests(unittest.TestCase):
 
     def test_login_wrong(self):
         """测试输入错误的用户名或密码时是否显示相应错误提示"""
-        # TODO: 请补充完整测试代码
+        self.login("wrong_user", "wrong_password")
+        time.sleep(2)  # 等待页面加载
+        # 验证是否显示错误提示
+        error_message = self.driver.find_element(By.CLASS_NAME, 'error-message-container')
+        self.assertTrue(error_message.is_displayed())
+        self.assertIn('Epic sadface', error_message.text)
         
     def test_login_locked(self):
         """测试输入被锁定的用户时是否显示相应错误提示"""
         self.login("locked_out_user", "secret_sauce")
-        # TODO: 请补充完整测试代码
+        time.sleep(2)  # 等待页面加载
+        # 验证是否显示锁定用户错误提示
+        error_message = self.driver.find_element(By.CLASS_NAME, 'error-message-container')
+        self.assertTrue(error_message.is_displayed())
+        self.assertIn('locked out', error_message.text)
 
     # ---------------------- 购物车功能测试 ----------------------
     @parameterized.expand([
@@ -66,7 +75,23 @@ class ShoppingSystemTests(unittest.TestCase):
     ])
     def test_add_to_cart(self, item_name, button_id):
         """测试添加商品到购物车功能"""
-        # TODO: 请补充完整测试代码
+        self.login("standard_user", "secret_sauce")
+        time.sleep(2)  # 等待页面加载
+        self.reset_state()
+        
+        # 添加商品到购物车
+        self.add_to_cart(button_id)
+        time.sleep(1)
+        
+        # 验证购物车图标显示数量为1
+        cart_badge = self.driver.find_element(By.CLASS_NAME, 'shopping_cart_badge')
+        self.assertEqual(cart_badge.text, '1')
+        
+        # 验证按钮状态变为"Remove"
+        remove_button_id = button_id.replace('add-to-cart-', 'remove-')
+        remove_button = self.driver.find_element(By.ID, remove_button_id)
+        self.assertTrue(remove_button.is_displayed())
+        self.assertEqual(remove_button.text, 'Remove')
 
     def test_remove_from_cart(self):
         """测试是否能够删除购物车中的商品"""
@@ -96,7 +121,37 @@ class ShoppingSystemTests(unittest.TestCase):
     # ---------------------- 结算和支付功能测试 ----------------------
     def test_checkout_and_payment(self):
         """测试填写收货信息和确认订单的结算功能"""
-        # TODO: 请补充完整测试代码
+        self.login("standard_user", "secret_sauce")
+        time.sleep(2)  # 等待页面加载
+        self.reset_state()
+        
+        # 添加一个商品到购物车
+        self.add_to_cart("add-to-cart-sauce-labs-backpack")
+        time.sleep(1)
+        
+        # 进入购物车页面
+        self.driver.find_element(By.CLASS_NAME, 'shopping_cart_link').click()
+        time.sleep(1)
+        
+        # 点击结算按钮
+        self.driver.find_element(By.ID, 'checkout').click()
+        time.sleep(1)
+        
+        # 填写收货信息
+        self.driver.find_element(By.ID, 'first-name').send_keys('John')
+        self.driver.find_element(By.ID, 'last-name').send_keys('Doe')
+        self.driver.find_element(By.ID, 'postal-code').send_keys('12345')
+        self.driver.find_element(By.ID, 'continue').click()
+        time.sleep(1)
+        
+        # 点击完成按钮
+        self.driver.find_element(By.ID, 'finish').click()
+        time.sleep(2)
+        
+        # 验证订单成功
+        success_message = self.driver.find_element(By.CLASS_NAME, 'complete-header')
+        self.assertTrue(success_message.is_displayed())
+        self.assertEqual(success_message.text, 'Thank you for your order!')
 
     @classmethod
     def tearDownClass(cls):
