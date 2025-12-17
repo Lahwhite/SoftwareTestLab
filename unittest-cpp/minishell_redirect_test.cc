@@ -80,10 +80,48 @@ TEST_P(CombineRedirectTest, CombineRedirectTest) {
     // 验证文件被创建
     EXPECT_TRUE(fileExists(temp_file));
 
-    // TODO: 根据不同的命令和重定向操作，验证文件内容是否符合预期
-    if (command.find("echo") != std::string::npos) {
-        EXPECT_NE(content.find("test"), std::string::npos);
-    } 
+    // // TODO: 根据不同的命令和重定向操作，验证文件内容是否符合预期
+    // if (command.find("echo") != std::string::npos) {
+    //     EXPECT_NE(content.find("test"), std::string::npos);
+    //     if (redirect_op == ">") {
+    //         std::string expected = extractEchoOutput(command) + "\n";
+    //         EXPECT_EQ(file_content, expected);
+    //     } else if (redirect_op == ">>") {
+    //         std::string to_append = extractEchoOutput(command) + "\n";
+    //     }
+    // } 
+
+    // 根据命令类型分别验证
+    if (command.substr(0, 4) == "echo") {
+        // 简化：假设 echo 后的内容就是字面量（不处理复杂引号/变量）
+        // 更健壮的做法是参数化期望值，但这里做基本验证
+        if (redirect_op == ">") {
+            // 例如: echo 'test1' → 输出 test1\n
+            // 我们只验证包含 "test"
+            EXPECT_NE(content.find("test"), std::string::npos);
+        } else if (redirect_op == ">>") {
+            EXPECT_NE(content.find("initial"), std::string::npos);
+            EXPECT_NE(content.find("test"), std::string::npos);
+        }
+    }
+    else if (command == "pwd") {
+        // pwd 输出应为绝对路径，以 '/' 开头
+        EXPECT_FALSE(content.empty());
+        if (redirect_op == ">") {
+            // 覆盖模式：内容应直接以 '/' 开头
+            EXPECT_EQ(content[0], '/');
+        } else if (redirect_op == ">>") {
+            // 追加模式：文件包含 "initial" 和 pwd 输出
+            EXPECT_NE(content.find("initial"), std::string::npos);
+            EXPECT_NE(content.find("/"), std::string::npos);
+        }
+        // 注意：末尾可能有 \n
+    }
+    else if (command == "env") {
+        // env 输出应非空，且包含 '='（环境变量格式）
+        EXPECT_FALSE(content.empty());
+        EXPECT_NE(content.find("="), std::string::npos);
+    }
 
 }
 
@@ -96,7 +134,9 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Combine(
         // TODO: 补充不同的命令（pwd，env等）
         ::testing::Values(
-            "echo 'test1'"
+            "echo 'test1'",
+            "env",
+            "pwd"
         ),
         // 第二维: 不同的重定向操作符（2个）
         // 3个命令 × 2个操作符 = 6个组合测试用例
