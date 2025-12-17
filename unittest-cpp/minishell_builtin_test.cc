@@ -15,6 +15,7 @@ TEST_F(MinishellTestBase, EchoSimpleString) {
 TEST_F(MinishellTestBase, EchoEmptyString) {
     std::string output = executeCommand("echo");
     // TODO: 验证输出（包含换行符和minishell提示符）
+    EXPECT_TRUE(output.find("\n") != std::string::npos);
 }
 
 // ========================================
@@ -35,6 +36,8 @@ class EchoParameterizedTest : public MinishellTestBase,
 TEST_P(EchoParameterizedTest, EchoVariousInputs) {
     EchoTestParam param = GetParam();
     // TODO: 验证 "echo " + param.input 的输出是否包含期望的字符串 param.expected_output
+    std::string output = executeCommand("echo " + param.input);
+    EXPECT_TRUE(output.find(param.expected_output) != std::string::npos);
 }
 
 // 任务3: 完成参数实例化
@@ -44,8 +47,10 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(
         // TODO: 在此添加至少4个测试参数，包括双引号字符串，单引号字符串，环境变量，不带引号的多个单词
         EchoTestParam{"\"Hello World\"", "Hello World", "Double quoted string"},
-        EchoTestParam{"'Single Quotes'", "Single Quotes", "Single quoted string"}
+        EchoTestParam{"'Single Quotes'", "Single Quotes", "Single quoted string"},
         // 继续添加更多测试用例...
+        EchoTestParam{"$HOME", "HOME", "Environment variable"},
+        EchoTestParam{"Hello World", "Hello World", "Unquoted multiple words"},
     )
 );
 
@@ -66,11 +71,33 @@ TEST_P(CdCommandTest, ChangeDirectory) {
         EXPECT_TRUE(output.find("/") != std::string::npos);
     } else if (target_dir == ".") {
         // TODO: 当前目录不变，可以 pwd 获取当前工作目录进行验证
-    } else if (target_dir == "..")
-    {
+        char cwd[PATH_MAX];
+        ASSERT_NE(getcwd(cwd, sizeof(cwd)), nullptr);
+        std::string expected(cwd);
+        if (!output.empty() && output.back() == '\n') output.pop_back();
+        EXPECT_EQ(output, expected);
+    } else if (target_dir == "..") {
         // TODO: 父目录，假设测试在某个已知目录下运行
+        char cwd[PATH_MAX];
+        ASSERT_NE(getcwd(cwd, sizeof(cwd)), nullptr);
+        std::string current(cwd);
+        std::string expected;
+        if (current == "/") {
+            expected = "/";
+        } else {
+            if (current.back() == '/') current.pop_back();
+            size_t last_slash = current.find_last_of('/');
+            if (last_slash == 0) {
+                expected = "/";
+            } else {
+                expected = current.substr(0, last_slash);
+            }
+        }
+        if (!output.empty() && output.back() == '\n') output.pop_back();
+        EXPECT_EQ(output, expected);
     } else {
         // TODO: 一般目录， pwd 验证是否成功切换
+        EXPECT_TRUE(output.find(target_dir) != std::string::npos);
     }
     
 }
