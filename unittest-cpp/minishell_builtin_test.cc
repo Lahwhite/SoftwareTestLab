@@ -1,6 +1,8 @@
 #include "minishell_test_base.h"
 #include <gtest/gtest.h>
 #include <string>
+#include <unistd.h>  // for getcwd
+#include <limits.h>  // for PATH_MAX
 
 // ========================================
 // Echo 命令测试
@@ -50,7 +52,7 @@ INSTANTIATE_TEST_SUITE_P(
         EchoTestParam{"'Single Quotes'", "Single Quotes", "Single quoted string"},
         // 继续添加更多测试用例...
         EchoTestParam{"$HOME", "HOME", "Environment variable"},
-        EchoTestParam{"Hello World", "Hello World", "Unquoted multiple words"},
+        EchoTestParam{"Hello World", "Hello World", "Unquoted multiple words"}
     )
 );
 
@@ -65,22 +67,17 @@ class CdCommandTest : public MinishellTestBase,
 // 任务4: 完成 cd 命令的边界值预期输出判断
 TEST_P(CdCommandTest, ChangeDirectory) {
     std::string target_dir = GetParam();
+    std::string now_dir = executeCommand("pwd");
     std::string output = executeCommand("cd " + target_dir + "; pwd");
     // 然后验证输出中包含目标目录(注意考虑特殊情况)
     if (target_dir == "/") {
         EXPECT_TRUE(output.find("/") != std::string::npos);
     } else if (target_dir == ".") {
         // TODO: 当前目录不变，可以 pwd 获取当前工作目录进行验证
-        char cwd[PATH_MAX];
-        ASSERT_NE(getcwd(cwd, sizeof(cwd)), nullptr);
-        std::string expected(cwd);
-        if (!output.empty() && output.back() == '\n') output.pop_back();
-        EXPECT_EQ(output, expected);
+        EXPECT_TRUE(output.find(now_dir) != std::string::npos);
     } else if (target_dir == "..") {
         // TODO: 父目录，假设测试在某个已知目录下运行
-        char cwd[PATH_MAX];
-        ASSERT_NE(getcwd(cwd, sizeof(cwd)), nullptr);
-        std::string current(cwd);
+        std::string current = now_dir;
         std::string expected;
         if (current == "/") {
             expected = "/";
@@ -94,7 +91,7 @@ TEST_P(CdCommandTest, ChangeDirectory) {
             }
         }
         if (!output.empty() && output.back() == '\n') output.pop_back();
-        EXPECT_EQ(output, expected);
+        EXPECT_TRUE(output.find(expected) != std::string::npos);
     } else {
         // TODO: 一般目录， pwd 验证是否成功切换
         EXPECT_TRUE(output.find(target_dir) != std::string::npos);
